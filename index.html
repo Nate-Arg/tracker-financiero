@@ -440,10 +440,10 @@ function addGasto(){
 }
 
 // ── Google Sheets Sync ──
-const SHEET_URL='https://script.google.com/macros/s/AKfycbzRGK54d4Kn34mfXleTl-Dy4DD9P62Y8qjlbVfWLSpSq_Jrt5Ikl7v2O5E4fmDXCJ8zYQ/exec';
+const SHEET_URL='https://script.google.com/macros/s/AKfycbxp1a0D9--M-iJ8_UTQf2eoBhCZI7lSFFw3sBx1VtFt5ZqBZjGCEMEGn6liePC5tNur9w/exec';
 
 function syncSheet(payload){
-  const params=new URLSearchParams({data:JSON.stringify(payload)});
+  const params=new URLSearchParams(payload);
   fetch(SHEET_URL+'?'+params.toString(),{method:'GET',mode:'no-cors'}).catch(()=>{});
 }
 

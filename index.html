@@ -440,15 +440,11 @@ function addGasto(){
 }
 
 // ── Google Sheets Sync ──
-const SHEET_URL='https://script.google.com/macros/s/AKfycbzwOYIB53up2X5m8nz3y4fgD6qr2DfjvhXSYfM7oQTtHLr_8G4PLqFYjR5eJCsoEWX0CQ/exec';
+const SHEET_URL='https://script.google.com/macros/s/AKfycbw2oNxqSyLPRXDpiK9qINVgZq7AutR5MGtmA0GIfFvBgk9bvh_mX0i0fr1QzmpeT8yxrg/exec';
 
 function syncSheet(payload){
-  fetch(SHEET_URL,{
-    method:'POST',
-    mode:'no-cors',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(payload)
-  }).catch(()=>{});
+  const params=new URLSearchParams({data:JSON.stringify(payload)});
+  fetch(SHEET_URL+'?'+params.toString(),{method:'GET',mode:'no-cors'}).catch(()=>{});
 }
 
 function mostrarSyncStatus(msg,ok=true){

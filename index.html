@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Tracker Financiero">
+  <meta name="theme-color" content="#3266ad">
+  <title>Tracker Financiero</title>
+  <link rel="manifest" href="manifest.json">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f2f2f7;color:#1c1c1e;overscroll-behavior:none}
+    .app{max-width:430px;margin:0 auto;background:#f2f2f7;min-height:100vh;padding-bottom:80px}
+    .header{background:#fff;border-bottom:0.5px solid rgba(0,0,0,.12);padding:16px;position:sticky;top:0;z-index:10}
+    .header h1{font-size:18px;font-weight:600;color:#1c1c1e}
+    .header p{font-size:12px;color:#6d6d72;margin-top:2px}
+    .tabs{display:flex;background:#fff;border-bottom:0.5px solid rgba(0,0,0,.12);position:sticky;top:57px;z-index:9}
+    .tab{flex:1;padding:10px 4px;font-size:12px;font-weight:500;text-align:center;color:#6d6d72;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}
+    .tab.active{color:#1c1c1e;border-bottom-color:#3266ad}
+    .page{display:none;padding:12px}
+    .page.active{display:block}
+    .metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+    .metric{background:#fff;border-radius:12px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+    .metric-label{font-size:11px;color:#6d6d72;margin-bottom:4px}
+    .metric-value{font-size:18px;font-weight:600;color:#1c1c1e}
+    .metric-value.danger{color:#c0392b}
+    .metric-value.success{color:#1d7a4f}
+    .card{background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+    .card-title{font-size:13px;font-weight:600;color:#1c1c1e;margin-bottom:10px}
+    .ingreso-row{display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:12px;border-bottom:0.5px solid rgba(0,0,0,.08)}
+    .ingreso-label{font-size:12px;color:#6d6d72;flex-shrink:0}
+    .ingreso-val{font-size:15px;font-weight:600;flex:1}
+    .ingreso-btn{font-size:11px;color:#3266ad;cursor:pointer;border:0.5px solid #b5d4f4;border-radius:6px;padding:3px 8px;background:none;white-space:nowrap}
+    .ingreso-edit{display:none;margin-bottom:12px;padding-bottom:12px;border-bottom:0.5px solid rgba(0,0,0,.08);gap:6px;align-items:center}
+    .ingreso-edit.show{display:flex}
+    .ingreso-edit input{flex:1;padding:8px 10px;font-size:13px;border:0.5px solid rgba(0,0,0,.15);border-radius:10px;background:#fff;color:#1c1c1e}
+    .ingreso-edit button{padding:8px 12px;background:#3266ad;color:#fff;border:none;border-radius:10px;font-size:12px;cursor:pointer}
+    .cat-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+    .cat-label{font-size:12px;color:#6d6d72;width:120px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .cat-bar-wrap{flex:1;height:6px;background:#f2f2f7;border-radius:3px;overflow:hidden}
+    .cat-bar{height:100%;border-radius:3px;transition:width .4s}
+    .cat-amount{font-size:11px;color:#6d6d72;width:72px;text-align:right;flex-shrink:0}
+    .expense-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid rgba(0,0,0,.08)}
+    .expense-item:last-child{border-bottom:none}
+    .exp-icon{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+    .exp-info{flex:1;min-width:0}
+    .exp-name{font-size:13px;color:#1c1c1e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .exp-cat{font-size:11px;color:#6d6d72}
+    .exp-amount{font-size:13px;font-weight:600;color:#1c1c1e}
+    .exp-date{font-size:10px;color:#6d6d72}
+    .month-selector{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .month-btn{background:#fff;border:0.5px solid rgba(0,0,0,.12);border-radius:10px;padding:6px 16px;font-size:18px;cursor:pointer;color:#1c1c1e;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+    .month-label{font-size:14px;font-weight:600;color:#1c1c1e}
+    /* DEUDAS */
+    .deuda-card{background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+    .deuda-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+    .deuda-nombre{font-size:13px;font-weight:600;color:#1c1c1e;flex:1;margin-right:8px}
+    .badge{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:500;flex-shrink:0}
+    .badge-ok{background:#e1f5ee;color:#0f6e56}
+    .badge-pend{background:#faeeda;color:#854f0b}
+    .deuda-progress-bar{height:5px;background:#f2f2f7;border-radius:3px;overflow:hidden;margin-bottom:8px}
+    .deuda-progress-fill{height:100%;border-radius:3px;background:#3266ad;transition:width .4s}
+    .deuda-nums{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px}
+    .deuda-num{text-align:center}
+    .deuda-num-label{font-size:10px;color:#6d6d72;margin-bottom:2px}
+    .deuda-num-val{font-size:12px;font-weight:600;color:#1c1c1e}
+    .deuda-num-val.r{color:#c0392b}
+    .deuda-num-val.g{color:#1d7a4f}
+    .pago-row{display:flex;gap:6px;align-items:center;border-top:0.5px solid rgba(0,0,0,.08);padding-top:10px}
+    .pago-row input{flex:1;padding:9px 10px;font-size:14px;border:0.5px solid rgba(0,0,0,.15);border-radius:10px;background:#fff;color:#1c1c1e}
+    .pago-row button{padding:9px 14px;background:#3266ad;color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;white-space:nowrap;font-weight:500}
+    .add-deuda-btn{width:100%;padding:12px;background:none;border:0.5px dashed rgba(0,0,0,.2);border-radius:14px;font-size:13px;color:#6d6d72;cursor:pointer;margin-top:4px}
+    .fondo-bar{height:8px;background:#f2f2f7;border-radius:4px;overflow:hidden;margin-top:4px}
+    .fondo-fill{height:100%;border-radius:4px}
+    .add-btn{position:fixed;bottom:90px;right:20px;width:54px;height:54px;border-radius:50%;background:#3266ad;color:#fff;font-size:26px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(50,102,173,.4);z-index:20}
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:30;align-items:flex-end;justify-content:center}
+    .modal-overlay.open{display:flex}
+    .modal{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:430px;padding:20px;max-height:85vh;overflow-y:auto;padding-bottom:40px}
+    .modal h2{font-size:17px;font-weight:600;margin-bottom:16px}
+    .form-group{margin-bottom:12px}
+    .form-group label{font-size:12px;color:#6d6d72;display:block;margin-bottom:4px;font-weight:500}
+    .form-group input,.form-group select{width:100%;padding:12px;font-size:15px;border:0.5px solid rgba(0,0,0,.15);border-radius:12px;background:#f9f9f9;color:#1c1c1e;appearance:none}
+    .btn-primary{width:100%;padding:14px;background:#3266ad;color:#fff;border:none;border-radius:14px;font-size:15px;cursor:pointer;margin-top:8px;font-weight:600}
+    .btn-cancel{width:100%;padding:12px;background:none;border:0.5px solid rgba(0,0,0,.15);border-radius:14px;font-size:15px;cursor:pointer;color:#6d6d72;margin-top:6px}
+    .chart-wrap{position:relative;width:100%;height:180px;margin-bottom:4px}
+    .safe-bottom{height:env(safe-area-inset-bottom)}
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>Tracker Financiero</h1>
+    <p id="header-sub"></p>
+  </div>
+  <div class="tabs">
+    <div class="tab active" onclick="showPage('resumen',this)">Resumen</div>
+    <div class="tab" onclick="showPage('gastos',this)">Gastos</div>
+    <div class="tab" onclick="showPage('deudas',this)">Deudas</div>
+    <div class="tab" onclick="showPage('fondo',this)">Fondo</div>
+  </div>
+
+  <!-- RESUMEN -->
+  <div id="page-resumen" class="page active">
+    <div class="month-selector">
+      <button class="month-btn" onclick="prevMes()">&#8249;</button>
+      <span class="month-label" id="mes-label">...</span>
+      <button class="month-btn" onclick="nextMes()">&#8250;</button>
+    </div>
+    <div class="metric-grid" id="metrics"></div>
+    <div class="card">
+      <div class="ingreso-row">
+        <span class="ingreso-label">Ingreso del mes</span>
+        <span class="ingreso-val" id="ingreso-val">—</span>
+        <button class="ingreso-btn" onclick="toggleEdit()">Editar</button>
+      </div>
+      <div class="ingreso-edit" id="ingreso-edit">
+        <input type="number" id="inp-ingreso" placeholder="Ej: 5500000" inputmode="numeric">
+        <button onclick="guardarIngreso()">Guardar</button>
+      </div>
+      <div class="card-title">Por categoría</div>
+      <div id="cat-bars"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Evolución mensual (ARS)</div>
+      <div class="chart-wrap"><canvas id="chartMes"></canvas></div>
+    </div>
+  </div>
+
+  <!-- GASTOS -->
+  <div id="page-gastos" class="page">
+    <div class="month-selector">
+      <button class="month-btn" onclick="prevMes2()">&#8249;</button>
+      <span class="month-label" id="mes-label2">...</span>
+      <button class="month-btn" onclick="nextMes2()">&#8250;</button>
+    </div>
+    <div id="filtro-cat" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
+    <div class="card" id="expense-list"></div>
+  </div>
+
+  <!-- DEUDAS -->
+  <div id="page-deudas" class="page">
+    <div class="metric-grid" id="deudas-metrics"></div>
+    <div id="deudas-list"></div>
+    <button class="add-deuda-btn" onclick="openDeudaModal()">+ Agregar deuda</button>
+  </div>
+
+  <!-- FONDO -->
+  <div id="page-fondo" class="page">
+    <div class="metric" style="margin-bottom:10px"><div class="metric-label">Total acumulado</div><div class="metric-value success" id="fondo-total">-</div></div>
+    <div class="card"><div class="card-title">Ahorros por mes</div><div id="fondo-list"></div></div>
+  </div>
+</div>
+
+<button class="add-btn" id="fab" onclick="openGastoModal()">+</button>
+
+<!-- MODAL GASTO -->
+<div class="modal-overlay" id="modal-gasto" onclick="if(event.target===this)closeModal('modal-gasto')">
+  <div class="modal">
+    <h2>Nuevo gasto</h2>
+    <div class="form-group"><label>Descripción</label><input type="text" id="inp-nombre" placeholder="Ej: Supermercado"></div>
+    <div class="form-group"><label>Monto (ARS)</label><input type="number" id="inp-monto" placeholder="0" inputmode="numeric"></div>
+    <div class="form-group"><label>Fecha</label><input type="date" id="inp-fecha"></div>
+    <div class="form-group"><label>Categoría</label>
+      <select id="inp-cat">
+        <option>Alimentos</option><option>Pagos mensuales</option><option>Servicios</option>
+        <option>Vehiculo</option><option>Educacion</option><option>Recreacion</option>
+        <option>Gastos Extraordinarios</option><option>Reparaciones de Casa</option><option>Gastos discrecionales</option>
+      </select>
+    </div>
+    <button class="btn-primary" onclick="addGasto()">Guardar gasto</button>
+    <button class="btn-cancel" onclick="closeModal('modal-gasto')">Cancelar</button>
+    <div class="safe-bottom"></div>
+  </div>
+</div>
+
+<!-- MODAL DEUDA -->
+<div class="modal-overlay" id="modal-deuda" onclick="if(event.target===this)closeModal('modal-deuda')">
+  <div class="modal">
+    <h2>Nueva deuda</h2>
+    <div class="form-group"><label>Nombre</label><input type="text" id="nd-nombre" placeholder="Ej: Tarjeta Visa"></div>
+    <div class="form-group"><label>Saldo total (ARS)</label><input type="number" id="nd-total" placeholder="0" inputmode="numeric"></div>
+    <div class="form-group"><label>Tipo</label>
+      <select id="nd-tipo"><option>Préstamo</option><option>Tarjeta de crédito</option><option>Otro</option></select>
+    </div>
+    <button class="btn-primary" onclick="addDeuda()">Agregar deuda</button>
+    <button class="btn-cancel" onclick="closeModal('modal-deuda')">Cancelar</button>
+    <div class="safe-bottom"></div>
+  </div>
+</div>
+
+<script>
+const CAT_COLORS={'Alimentos':'#3266ad','Pagos mensuales':'#c0392b','Servicios':'#8e44ad','Vehiculo':'#e67e22','Educacion':'#27ae60','Recreacion':'#1abc9c','Gastos Extraordinarios':'#e74c3c','Reparaciones de Casa':'#f39c12','Gastos discrecionales':'#7f8c8d'};
+const CAT_ICONS={'Alimentos':'🛒','Pagos mensuales':'💳','Servicios':'⚡','Vehiculo':'🚗','Educacion':'📚','Recreacion':'🎾','Gastos Extraordinarios':'⭐','Reparaciones de Casa':'🔧','Gastos discrecionales':'🎵'};
+const MESES_LABELS={'2025-10':'Oct 2025','2025-11':'Nov 2025','2025-12':'Dic 2025','2026-01':'Ene 2026','2026-02':'Feb 2026','2026-03':'Mar 2026','2026-04':'Abr 2026'};
+
+// ── Persistencia en localStorage ──
+function loadData(){
+  try{
+    const g=localStorage.getItem('tf_gastos');
+    const d=localStorage.getItem('tf_deudas');
+    const i=localStorage.getItem('tf_ingresos');
+    const f=localStorage.getItem('tf_fondo');
+    if(g) gastos=JSON.parse(g);
+    if(d) deudas=JSON.parse(d);
+    if(i) ingresos=JSON.parse(i);
+    if(f) fondo=JSON.parse(f);
+  }catch(e){}
+}
+function saveData(){
+  try{
+    localStorage.setItem('tf_gastos',JSON.stringify(gastos));
+    localStorage.setItem('tf_deudas',JSON.stringify(deudas));
+    localStorage.setItem('tf_ingresos',JSON.stringify(ingresos));
+    localStorage.setItem('tf_fondo',JSON.stringify(fondo));
+  }catch(e){}
+}
+
+let ingresos={};
+let deudas=[
+  {id:1,n:"Cuota de casa",tipo:"Préstamo",totalOriginal:84836250,saldo:84088250},
+  {id:2,n:"Crédito Santander",tipo:"Préstamo",totalOriginal:1200554,saldo:1036380},
+  {id:3,n:"MP Préstamos Jacky",tipo:"Préstamo",totalOriginal:565254,saldo:0},
+  {id:4,n:"MP Préstamo Personal",tipo:"Préstamo",totalOriginal:1241474,saldo:1086290},
+  {id:5,n:"MP Préstamo Personal 2",tipo:"Préstamo",totalOriginal:176367,saldo:0},
+  {id:6,n:"Tarjeta Santander",tipo:"Tarjeta de crédito",totalOriginal:677464,saldo:508881},
+  {id:7,n:"Tarjeta Galicia Mas",tipo:"Tarjeta de crédito",totalOriginal:878000,saldo:278000},
+  {id:8,n:"MP Cep",tipo:"Préstamo",totalOriginal:585816,saldo:488180},
+  {id:9,n:"MP Bordeadora",tipo:"Préstamo",totalOriginal:59512,saldo:0},
+  {id:10,n:"MP Dinero Plus",tipo:"Préstamo",totalOriginal:62436,saldo:0}
+];
+let nextId=11;
+let gastos=[{"Fecha":"2026-04-01","Nombre":"Futbol","Monto":27000,"Categoria":"Recreacion","Mes":"2026-04"},{"Fecha":"2025-10-01","Nombre":"Mercado Pago Prestamo Personal","Monto":5879,"Categoria":"Pagos mensuales","Mes":"2025-10"},{"Fecha":"2025-10-02","Nombre":"Mercado Pago Prestamo Personal","Monto":20000,"Categoria":"Pagos mensuales","Mes":"2025-10"},{"Fecha":"2025-10-01","Nombre":"Tarjeta de Credito Galicia","Monto":600000,"Categoria":"Pagos mensuales","Mes":"2025-10"},{"Fecha":"2025-10-02","Nombre":"transferencia a Gri","Monto":10000,"Categoria":"Gastos Extraordinarios","Mes":"2025-10"},{"Fecha":"2025-10-02","Nombre":"compra carrefour","Monto":26195,"Categoria":"Alimentos","Mes":"2025-10"},{"Fecha":"2025-10-01","Nombre":"colegio valen","Monto":335000,"Categoria":"Educacion","Mes":"2025-10"},{"Fecha":"2025-10-01","Nombre":"service Auto","Monto":94000,"Categoria":"Vehiculo","Mes":"2025-10"},{"Fecha":"2025-10-02","Nombre":"Carne","Monto":100000,"Categoria":"Alimentos","Mes":"2025-10"},{"Fecha":"2025-10-02","Nombre":"Pollo","Monto":50000,"Categoria":"Alimentos","Mes":"2025-10"},{"Fecha":"2025-10-02","Nombre":"Seguro del Auto","Monto":85680,"Categoria":"Servicios","Mes":"2025-10"},{"Fecha":"2025-10-02","Nombre":"Regalos para los Nenes","Monto":40000,"Categoria":"Gastos Extraordinarios","Mes":"2025-10"},{"Fecha":"2025-10-02","Nombre":"Prestamo Santander","Monto":164147,"Categoria":"Pagos mensuales","Mes":"2025-10"},{"Fecha":"2025-10-03","Nombre":"Instituto San Jose","Monto":80997,"Categoria":"Educacion","Mes":"2025-10"},{"Fecha":"2025-10-03","Nombre":"Compe de Gri","Monto":25000,"Categoria":"Gastos Extraordinarios","Mes":"2025-10"},{"Fecha":"2025-10-03","Nombre":"Colegio San Jose","Monto":45450,"Categoria":"Educacion","Mes":"2025-10"},{"Fecha":"2025-10-03","Nombre":"River","Monto":8670,"Categoria":"Recreacion","Mes":"2025-10"},{"Fecha":"2025-10-03","Nombre":"Pintureria","Monto":38484,"Categoria":"Reparaciones de Casa","Mes":"2025-10"},{"Fecha":"2025-10-03","Nombre":"Supermercado","Monto":500000,"Categoria":"Alimentos","Mes":"2025-10"},{"Fecha":"2025-10-03","Nombre":"Crossfit Valen","Monto":25000,"Categoria":"Recreacion","Mes":"2025-10"},{"Fecha":"2025-10-03","Nombre":"Crossfit Gri","Monto":25000,"Categoria":"Recreacion","Mes":"2025-10"},{"Fecha":"2025-10-03","Nombre":"Crossfit Natu","Monto":25000,"Categoria":"Recreacion","Mes":"2025-10"},{"Fecha":"2025-10-03","Nombre":"Pesca","Monto":60000,"Categoria":"Gastos Extraordinarios","Mes":"2025-10"},{"Fecha":"2025-10-04","Nombre":"Pago de casa","Monto":786500,"Categoria":"Pagos mensuales","Mes":"2025-10"},{"Fecha":"2025-10-04","Nombre":"Salida de Valen","Monto":30000,"Categoria":"Gastos Extraordinarios","Mes":"2025-10"},{"Fecha":"2025-10-04","Nombre":"Nafta","Monto":30000,"Categoria":"Vehiculo","Mes":"2025-10"},{"Fecha":"2025-10-04","Nombre":"Regalo toto","Monto":15000,"Categoria":"Gastos Extraordinarios","Mes":"2025-10"},{"Fecha":"2025-10-04","Nombre":"Ferreteria","Monto":6000,"Categoria":"Reparaciones de Casa","Mes":"2025-10"},{"Fecha":"2025-10-04","Nombre":"Pijama de Mateo","Monto":16000,"Categoria":"Gastos Extraordinarios","Mes":"2025-10"},{"Fecha":"2025-10-05","Nombre":"Almuerzo en familia","Monto":82300,"Categoria":"Gastos Extraordinarios","Mes":"2025-10"},{"Fecha":"2025-10-06","Nombre":"Singueria","Monto":67134,"Categoria":"Reparaciones de Casa","Mes":"2025-10"},{"Fecha":"2025-10-07","Nombre":"Tarjeta santander","Monto":170605,"Categoria":"Pagos mensuales","Mes":"2025-10"},{"Fecha":"2025-10-07","Nombre":"Art de limpieza","Monto":7500,"Categoria":"Alimentos","Mes":"2025-10"},{"Fecha":"2025-10-07","Nombre":"Peluqueria Lola","Monto":25000,"Categoria":"Gastos Extraordinarios","Mes":"2025-10"},{"Fecha":"2025-10-07","Nombre":"Nafta","Monto":30000,"Categoria":"Vehiculo","Mes":"2025-10"},{"Fecha":"2025-10-07","Nombre":"Carrefour","Monto":48571,"Categoria":"Alimentos","Mes":"2025-10"},{"Fecha":"2025-10-08","Nombre":"Electricidad","Monto":17640,"Categoria":"Reparaciones de Casa","Mes":"2025-10"},{"Fecha":"2025-10-08","Nombre":"Dia %","Monto":4200,"Categoria":"Alimentos","Mes":"2025-10"},{"Fecha":"2025-10-09","Nombre":"Futbol de Mateo","Monto":18000,"Categoria":"Recreacion","Mes":"2025-10"},{"Fecha":"2025-10-08","Nombre":"Peluqueria Gri","Monto":90000,"Categoria":"Gastos Extraordinarios","Mes":"2025-10"},{"Fecha":"2025-10-08","Nombre":"Agua","Monto":23000,"Categoria":"Servicios","Mes":"2025-10"},{"Fecha":"2025-10-08","Nombre":"Medicamentos de los mchicos","Monto":50000,"Categoria":"Gastos Extraordinarios","Mes":"2025-10"},{"Fecha":"2025-10-09","Nombre":"Comida /bebidaa pescadores","Monto":31700,"Categoria":"Gastos Extraordinarios","Mes":"2025-10"},{"Fecha":"2025-10-09","Nombre":"Arreglo de pilar de Luz","Monto":110000,"Categoria":"Reparaciones de Casa","Mes":"2025-10"},{"Fecha":"2025-10-10","Nombre":"Suplementos","Monto":63000,"Categoria":"Recreacion","Mes":"2025-10"},{"Fecha":"2025-10-13","Nombre":"Arreglo de Grupo/desmalezadora","Monto":120000,"Categoria":"Gastos Extraordinarios","Mes":"2025-10"},{"Fecha":"2025-10-13","Nombre":"Spotify","Monto":5647,"Categoria":"Gastos discrecionales","Mes":"2025-10"},{"Fecha":"2025-10-13","Nombre":"Open IA","Monto":28595,"Categoria":"Gastos discrecionales","Mes":"2025-10"},{"Fecha":"2025-10-13","Nombre":"Amazon Prime","Monto":7993,"Categoria":"Gastos discrecionales","Mes":"2025-10"},{"Fecha":"2025-10-13","Nombre":"Fiambreria","Monto":25000,"Categoria":"Alimentos","Mes":"2025-10"},{"Fecha":"2025-10-13","Nombre":"Verduras","Monto":10000,"Categoria":"Alimentos","Mes":"2025-10"},{"Fecha":"2025-10-15","Nombre":"Nafta","Monto":30000,"Categoria":"Vehiculo","Mes":"2025-10"},{"Fecha":"2025-10-15","Nombre":"Compra carrefour","Monto":11994,"Categoria":"Alimentos","Mes":"2025-10"},{"Fecha":"2025-10-16","Nombre":"Corte de pelo mio","Monto":15000,"Categoria":"Gastos discrecionales","Mes":"2025-10"},{"Fecha":"2025-10-16","Nombre":"Fiambre","Monto":6300,"Categoria":"Alimentos","Mes":"2025-10"},{"Fecha":"2025-10-16","Nombre":"Google Youtbe","Monto":9280,"Categoria":"Gastos discrecionales","Mes":"2025-10"},{"Fecha":"2025-10-17","Nombre":"Carne dia de la madre","Monto":77000,"Categoria":"Gastos Extraordinarios","Mes":"2025-10"},{"Fecha":"2025-10-18","Nombre":"Regalos dia de la madre","Monto":97000,"Categoria":"Gastos Extraordinarios","Mes":"2025-10"},{"Fecha":"2025-10-20","Nombre":"Uñas Valen/ Gri","Monto":20000,"Categoria":"Gastos Extraordinarios","Mes":"2025-10"},{"Fecha":"2025-10-22","Nombre":"Netflix","Monto":10675,"Categoria":"Gastos discrecionales","Mes":"2025-10"},{"Fecha":"2025-10-22","Nombre":"Carga de Sube","Monto":10000,"Categoria":"Servicios","Mes":"2025-10"},{"Fecha":"2025-10-23","Nombre":"Internet/Cable","Monto":77206,"Categoria":"Servicios","Mes":"2025-10"},{"Fecha":"2025-10-22","Nombre":"Audiable","Monto":22000,"Categoria":"Gastos discrecionales","Mes":"2025-10"},{"Fecha":"2025-10-31","Nombre":"Transferencia a Gri","Monto":30000,"Categoria":"Gastos Extraordinarios","Mes":"2025-10"},{"Fecha":"2025-11-01","Nombre":"Cumple de Eze","Monto":27500,"Categoria":"Educacion","Mes":"2025-11"},{"Fecha":"2025-11-01","Nombre":"Helado","Monto":18000,"Categoria":"Gastos Extraordinarios","Mes":"2025-11"},{"Fecha":"2025-11-01","Nombre":"Transferencia Valen","Monto":20000,"Categoria":"Gastos Extraordinarios","Mes":"2025-11"},{"Fecha":"2025-11-01","Nombre":"Ferreteria","Monto":82000,"Categoria":"Reparaciones de Casa","Mes":"2025-11"},{"Fecha":"2025-11-02","Nombre":"Supermercado","Monto":500000,"Categoria":"Alimentos","Mes":"2025-11"},{"Fecha":"2025-11-02","Nombre":"Cena de la familia","Monto":177500,"Categoria":"Gastos Extraordinarios","Mes":"2025-11"},{"Fecha":"2025-11-03","Nombre":"Tarjeta Galicia","Monto":792906,"Categoria":"Pagos mensuales","Mes":"2025-11"},{"Fecha":"2025-11-03","Nombre":"Credito Mercado Pago","Monto":62000,"Categoria":"Pagos mensuales","Mes":"2025-11"},{"Fecha":"2025-11-03","Nombre":"Colegio De Valen","Monto":345000,"Categoria":"Educacion","Mes":"2025-11"},{"Fecha":"2025-11-03","Nombre":"Cuota casa","Monto":794750,"Categoria":"Pagos mensuales","Mes":"2025-11"},{"Fecha":"2025-11-03","Nombre":"Tarjeta santander","Monto":170605,"Categoria":"Pagos mensuales","Mes":"2025-11"},{"Fecha":"2025-11-04","Nombre":"Suplementos","Monto":29800,"Categoria":"Alimentos","Mes":"2025-11"},{"Fecha":"2025-11-04","Nombre":"Internet","Monto":75999,"Categoria":"Servicios","Mes":"2025-11"},{"Fecha":"2025-11-04","Nombre":"Verduleria","Monto":40000,"Categoria":"Alimentos","Mes":"2025-11"},{"Fecha":"2025-11-04","Nombre":"Box Gri","Monto":25000,"Categoria":"Recreacion","Mes":"2025-11"},{"Fecha":"2025-11-04","Nombre":"Box Valen","Monto":25000,"Categoria":"Recreacion","Mes":"2025-11"},{"Fecha":"2025-11-04","Nombre":"Box Natu","Monto":25000,"Categoria":"Recreacion","Mes":"2025-11"},{"Fecha":"2025-11-04","Nombre":"Nafta","Monto":30000,"Categoria":"Vehiculo","Mes":"2025-11"},{"Fecha":"2025-11-05","Nombre":"Colegio Mateo","Monto":80877,"Categoria":"Educacion","Mes":"2025-11"},{"Fecha":"2025-11-05","Nombre":"Excursion","Monto":25000,"Categoria":"Educacion","Mes":"2025-11"},{"Fecha":"2025-11-05","Nombre":"Pollo/Huevos","Monto":100000,"Categoria":"Alimentos","Mes":"2025-11"},{"Fecha":"2025-11-05","Nombre":"Comida de las perros","Monto":28849,"Categoria":"Alimentos","Mes":"2025-11"},{"Fecha":"2025-11-07","Nombre":"Prestamo Santander","Monto":164000,"Categoria":"Pagos mensuales","Mes":"2025-11"},{"Fecha":"2025-11-07","Nombre":"Carne cumple","Monto":60000,"Categoria":"Gastos Extraordinarios","Mes":"2025-11"},{"Fecha":"2025-11-08","Nombre":"Carrefour","Monto":70000,"Categoria":"Gastos discrecionales","Mes":"2025-11"},{"Fecha":"2025-11-08","Nombre":"Electricidad","Monto":9800,"Categoria":"Reparaciones de Casa","Mes":"2025-11"},{"Fecha":"2025-11-09","Nombre":"Asado con papas de futbol","Monto":24000,"Categoria":"Gastos Extraordinarios","Mes":"2025-11"},{"Fecha":"2025-11-10","Nombre":"Prestamo Mercado Pago","Monto":15566,"Categoria":"Pagos mensuales","Mes":"2025-11"},{"Fecha":"2025-11-10","Nombre":"Medicamentos de los chicos","Monto":65000,"Categoria":"Servicios","Mes":"2025-11"},{"Fecha":"2025-11-11","Nombre":"Nafta","Monto":30000,"Categoria":"Vehiculo","Mes":"2025-11"},{"Fecha":"2025-11-17","Nombre":"Comida","Monto":40000,"Categoria":"Alimentos","Mes":"2025-11"},{"Fecha":"2025-11-17","Nombre":"Nafta","Monto":30000,"Categoria":"Vehiculo","Mes":"2025-11"},{"Fecha":"2025-11-24","Nombre":"Thiner y rodillos","Monto":10500,"Categoria":"Reparaciones de Casa","Mes":"2025-11"},{"Fecha":"2025-11-28","Nombre":"Interruptores luz","Monto":45000,"Categoria":"Reparaciones de Casa","Mes":"2025-11"},{"Fecha":"2025-11-28","Nombre":"Transferencia Gri","Monto":30000,"Categoria":"Gastos Extraordinarios","Mes":"2025-11"},{"Fecha":"2025-12-01","Nombre":"Medidor de Luz","Monto":150000,"Categoria":"Reparaciones de Casa","Mes":"2025-12"},{"Fecha":"2025-12-01","Nombre":"Mercaderia Carrefour","Monto":498000,"Categoria":"Alimentos","Mes":"2025-12"},{"Fecha":"2025-12-01","Nombre":"Hamburguesas","Monto":60775,"Categoria":"Gastos Extraordinarios","Mes":"2025-12"},{"Fecha":"2025-12-01","Nombre":"Luz smart","Monto":45000,"Categoria":"Reparaciones de Casa","Mes":"2025-12"},{"Fecha":"2025-12-01","Nombre":"Regalo cumple","Monto":25000,"Categoria":"Gastos Extraordinarios","Mes":"2025-12"},{"Fecha":"2025-12-01","Nombre":"Mercado Pago","Monto":690497,"Categoria":"Pagos mensuales","Mes":"2025-12"},{"Fecha":"2025-12-01","Nombre":"Tarjeta Galicia Visa","Monto":990022,"Categoria":"Pagos mensuales","Mes":"2025-12"},{"Fecha":"2025-12-01","Nombre":"Tarjeta Santander","Monto":171000,"Categoria":"Pagos mensuales","Mes":"2025-12"},{"Fecha":"2025-12-01","Nombre":"Agua","Monto":73000,"Categoria":"Servicios","Mes":"2025-12"},{"Fecha":"2025-12-01","Nombre":"Carne","Monto":100000,"Categoria":"Alimentos","Mes":"2025-12"},{"Fecha":"2025-12-01","Nombre":"Prestamo Mercado pago","Monto":17849,"Categoria":"Pagos mensuales","Mes":"2025-12"},{"Fecha":"2025-12-01","Nombre":"Mercado pago Prestamo","Monto":25344,"Categoria":"Pagos mensuales","Mes":"2025-12"},{"Fecha":"2025-12-02","Nombre":"Pollo","Monto":100000,"Categoria":"Alimentos","Mes":"2025-12"},{"Fecha":"2025-12-02","Nombre":"Medidor de Luz","Monto":150000,"Categoria":"Reparaciones de Casa","Mes":"2025-12"},{"Fecha":"2025-12-03","Nombre":"Box Gri","Monto":28000,"Categoria":"Recreacion","Mes":"2025-12"},{"Fecha":"2025-12-03","Nombre":"Box Valen","Monto":28000,"Categoria":"Recreacion","Mes":"2025-12"},{"Fecha":"2025-12-03","Nombre":"Box Natu","Monto":28000,"Categoria":"Recreacion","Mes":"2025-12"},{"Fecha":"2025-12-04","Nombre":"Lentes de contacto","Monto":90000,"Categoria":"Gastos Extraordinarios","Mes":"2025-12"},{"Fecha":"2025-12-04","Nombre":"Futbol","Monto":20000,"Categoria":"Recreacion","Mes":"2025-12"},{"Fecha":"2025-12-13","Nombre":"Corte de pelo","Monto":15000,"Categoria":"Servicios","Mes":"2025-12"},{"Fecha":"2025-12-13","Nombre":"Nafta","Monto":30000,"Categoria":"Vehiculo","Mes":"2025-12"},{"Fecha":"2025-12-18","Nombre":"Nafta","Monto":30000,"Categoria":"Vehiculo","Mes":"2025-12"},{"Fecha":"2025-12-19","Nombre":"Creditos Mercado Pago Extra","Monto":389231,"Categoria":"Pagos mensuales","Mes":"2025-12"},{"Fecha":"2026-01-03","Nombre":"Gasto de cumple","Monto":100000,"Categoria":"Gastos Extraordinarios","Mes":"2026-01"},{"Fecha":"2026-01-03","Nombre":"Hamburguesas cumpleaños","Monto":105000,"Categoria":"Gastos Extraordinarios","Mes":"2026-01"},{"Fecha":"2026-01-02","Nombre":"Prestamo Mercado Pago","Monto":382027,"Categoria":"Pagos mensuales","Mes":"2026-01"},{"Fecha":"2026-01-05","Nombre":"Tarjeta Galicia","Monto":1078807,"Categoria":"Pagos mensuales","Mes":"2026-01"},{"Fecha":"2026-01-05","Nombre":"Box Gri","Monto":28000,"Categoria":"Recreacion","Mes":"2026-01"},{"Fecha":"2026-01-05","Nombre":"Box Natu","Monto":28000,"Categoria":"Recreacion","Mes":"2026-01"},{"Fecha":"2026-01-05","Nombre":"Box Valen","Monto":28000,"Categoria":"Recreacion","Mes":"2026-01"},{"Fecha":"2026-01-05","Nombre":"Regalo Reyes","Monto":42000,"Categoria":"Gastos Extraordinarios","Mes":"2026-01"},{"Fecha":"2026-01-08","Nombre":"Tarjeta Santander","Monto":115799,"Categoria":"Pagos mensuales","Mes":"2026-01"},{"Fecha":"2026-01-12","Nombre":"Seguro del auto","Monto":95000,"Categoria":"Vehiculo","Mes":"2026-01"},{"Fecha":"2026-02-01","Nombre":"Cuenta Santander","Monto":70000,"Categoria":"Pagos mensuales","Mes":"2026-02"},{"Fecha":"2026-02-01","Nombre":"Honorarios Beto","Monto":30000,"Categoria":"Servicios","Mes":"2026-02"},{"Fecha":"2026-02-01","Nombre":"Impuesto muni","Monto":37827,"Categoria":"Servicios","Mes":"2026-02"},{"Fecha":"2026-02-01","Nombre":"Luz","Monto":173347,"Categoria":"Servicios","Mes":"2026-02"},{"Fecha":"2026-02-01","Nombre":"Gas","Monto":37827,"Categoria":"Servicios","Mes":"2026-02"},{"Fecha":"2026-02-02","Nombre":"Tarjeta Gal","Monto":994611,"Categoria":"Pagos mensuales","Mes":"2026-02"},{"Fecha":"2026-02-02","Nombre":"Tarjeta gal Master","Monto":144000,"Categoria":"Pagos mensuales","Mes":"2026-02"},{"Fecha":"2026-02-02","Nombre":"Préstamo MP","Monto":382027,"Categoria":"Pagos mensuales","Mes":"2026-02"},{"Fecha":"2026-02-03","Nombre":"Tarjeta Santander","Monto":117000,"Categoria":"Pagos mensuales","Mes":"2026-02"},{"Fecha":"2026-02-05","Nombre":"Movistar internet","Monto":122600,"Categoria":"Servicios","Mes":"2026-02"},{"Fecha":"2026-02-04","Nombre":"Box","Monto":90000,"Categoria":"Recreacion","Mes":"2026-02"},{"Fecha":"2026-02-18","Nombre":"Futbol Mateo","Monto":27600,"Categoria":"Recreacion","Mes":"2026-02"},{"Fecha":"2026-02-18","Nombre":"Creatina","Monto":40000,"Categoria":"Alimentos","Mes":"2026-02"},{"Fecha":"2026-02-10","Nombre":"Alimentos","Monto":1000000,"Categoria":"Alimentos","Mes":"2026-02"},{"Fecha":"2026-02-27","Nombre":"Sobregiro galicia","Monto":26000,"Categoria":"Pagos mensuales","Mes":"2026-02"},{"Fecha":"2026-02-27","Nombre":"Colegio Valen","Monto":379750,"Categoria":"Educacion","Mes":"2026-02"},{"Fecha":"2026-03-02","Nombre":"Pago  MP- Dinero Plus","Monto":108878,"Categoria":"Pagos mensuales","Mes":"2026-03"},{"Fecha":"2026-03-02","Nombre":"Prestamos Santander","Monto":157188,"Categoria":"Pagos mensuales","Mes":"2026-03"},{"Fecha":"2026-03-04","Nombre":"Seguro de Auto","Monto":95170,"Categoria":"Vehiculo","Mes":"2026-03"},{"Fecha":"2026-04-01","Nombre":"Tarjeta Visa Galicia","Monto":992000,"Categoria":"Pagos mensuales","Mes":"2026-04"},{"Fecha":"2026-04-01","Nombre":"Alimentos","Monto":1000000,"Categoria":"Alimentos","Mes":"2026-04"},{"Fecha":"2026-04-01","Nombre":"Colegio Valen","Monto":312930,"Categoria":"Educacion","Mes":"2026-04"},{"Fecha":"2026-04-01","Nombre":"Contador","Monto":30000,"Categoria":"Servicios","Mes":"2026-04"}];
+let fondo=[{mes:"Septiembre",monto:120000},{mes:"Octubre",monto:-36000},{mes:"Noviembre",monto:80000},{mes:"Diciembre",monto:1200000},{mes:"Enero 26",monto:500000}];
+const allMeses=['2025-10','2025-11','2025-12','2026-01','2026-02','2026-03','2026-04'];
+
+let curMesIdx=allMeses.indexOf('2026-04');
+let curMesIdx2=allMeses.indexOf('2026-04');
+let filterCat=null;
+let chartInstance=null;
+
+loadData();
+
+function fmt(n){return'$'+Math.round(n).toLocaleString('es-AR')}
+function getMes(idx){return allMeses[idx]}
+function gastosDelMes(mes){return gastos.filter(g=>g.Mes===mes)}
+
+function showPage(name,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  el.classList.add('active');
+  document.getElementById('fab').style.display=name==='deudas'?'none':'flex';
+}
+
+function toggleEdit(){
+  const el=document.getElementById('ingreso-edit');
+  const showing=el.classList.contains('show');
+  el.classList.toggle('show',!showing);
+  if(!showing){document.getElementById('inp-ingreso').value=ingresos[getMes(curMesIdx)]||'';document.getElementById('inp-ingreso').focus();}
+}
+function guardarIngreso(){
+  const val=parseFloat(document.getElementById('inp-ingreso').value);
+  if(!val||isNaN(val)){alert('Ingresá un monto válido');return}
+  ingresos[getMes(curMesIdx)]=val;
+  document.getElementById('ingreso-edit').classList.remove('show');
+  saveData();
+  renderResumen();
+}
+
+function renderResumen(){
+  const mes=getMes(curMesIdx);
+  document.getElementById('mes-label').textContent=MESES_LABELS[mes]||mes;
+  const g=gastosDelMes(mes);
+  const total=g.reduce((s,x)=>s+x.Monto,0);
+  const ingreso=ingresos[mes]||null;
+  const balance=ingreso!=null?ingreso-total:null;
+  document.getElementById('header-sub').textContent=ingreso?'Ingreso: '+fmt(ingreso):'';
+  document.getElementById('ingreso-val').textContent=ingreso?fmt(ingreso):'—';
+  document.getElementById('ingreso-val').style.color=ingreso?'#1d7a4f':'#6d6d72';
+  document.getElementById('metrics').innerHTML=`
+    <div class="metric"><div class="metric-label">Gastos del mes</div><div class="metric-value danger">${fmt(total)}</div></div>
+    <div class="metric"><div class="metric-label">Balance</div><div class="metric-value ${balance==null?'':balance>=0?'success':'danger'}">${balance!=null?fmt(balance):'—'}</div></div>
+    <div class="metric"><div class="metric-label">Transacciones</div><div class="metric-value">${g.length}</div></div>
+    <div class="metric"><div class="metric-label">Promedio diario</div><div class="metric-value">${fmt(total/30)}</div></div>
+  `;
+  const bycat={};
+  g.forEach(x=>{bycat[x.Categoria]=(bycat[x.Categoria]||0)+x.Monto});
+  const sorted=Object.entries(bycat).sort((a,b)=>b[1]-a[1]);
+  const max=sorted[0]?sorted[0][1]:1;
+  document.getElementById('cat-bars').innerHTML=sorted.map(([cat,amt])=>`
+    <div class="cat-row">
+      <div class="cat-label">${cat}</div>
+      <div class="cat-bar-wrap"><div class="cat-bar" style="width:${Math.round(amt/max*100)}%;background:${CAT_COLORS[cat]||'#888'}"></div></div>
+      <div class="cat-amount">${fmt(amt)}</div>
+    </div>`).join('');
+  renderChart();
+}
+
+function renderChart(){
+  const totals=allMeses.map(m=>gastosDelMes(m).reduce((s,x)=>s+x.Monto,0));
+  const ingrArr=allMeses.map(m=>ingresos[m]||null);
+  const hasIngr=ingrArr.some(v=>v!==null);
+  if(chartInstance)chartInstance.destroy();
+  const datasets=[{label:'Gastos',data:totals,backgroundColor:allMeses.map((m,i)=>i===curMesIdx?'#3266ad':'#b5d4f4'),borderRadius:4,order:2}];
+  if(hasIngr)datasets.push({label:'Ingresos',data:ingrArr,type:'line',borderColor:'#27ae60',borderWidth:2,pointRadius:4,pointBackgroundColor:'#27ae60',fill:false,spanGaps:true,order:1});
+  chartInstance=new Chart(document.getElementById('chartMes'),{
+    type:'bar',data:{labels:allMeses.map(m=>MESES_LABELS[m]||m),datasets},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{y:{ticks:{callback:v=>'$'+(v/1000000).toFixed(1)+'M',font:{size:10}},grid:{color:'rgba(0,0,0,.05)'}},x:{ticks:{font:{size:9},maxRotation:30,autoSkip:false},grid:{display:false}}}}
+  });
+}
+
+function prevMes(){if(curMesIdx>0){curMesIdx--;renderResumen()}}
+function nextMes(){if(curMesIdx<allMeses.length-1){curMesIdx++;renderResumen()}}
+function prevMes2(){if(curMesIdx2>0){curMesIdx2--;renderGastos()}}
+function nextMes2(){if(curMesIdx2<allMeses.length-1){curMesIdx2++;renderGastos()}}
+
+function renderGastos(){
+  const mes=getMes(curMesIdx2);
+  document.getElementById('mes-label2').textContent=MESES_LABELS[mes]||mes;
+  const g=gastosDelMes(mes);
+  const cats=[...new Set(g.map(x=>x.Categoria))];
+  document.getElementById('filtro-cat').innerHTML=`
+    <span style="font-size:11px;padding:4px 10px;border-radius:12px;cursor:pointer;border:0.5px solid ${!filterCat?'#3266ad':'rgba(0,0,0,.15)'};color:${!filterCat?'#3266ad':'#6d6d72'};background:${!filterCat?'#e6f1fb':'#fff'}" onclick="filterCat=null;renderGastos()">Todos</span>
+    ${cats.map(c=>`<span style="font-size:11px;padding:4px 10px;border-radius:12px;cursor:pointer;border:0.5px solid ${filterCat===c?(CAT_COLORS[c]||'#888'):'rgba(0,0,0,.15)'};color:${filterCat===c?(CAT_COLORS[c]||'#888'):'#6d6d72'};background:#fff" onclick="filterCat='${c}';renderGastos()">${c}</span>`).join('')}
+  `;
+  const filtered=filterCat?g.filter(x=>x.Categoria===filterCat):g;
+  const sorted=[...filtered].sort((a,b)=>b.Fecha.localeCompare(a.Fecha));
+  document.getElementById('expense-list').innerHTML=sorted.length===0
+    ?'<p style="color:#6d6d72;font-size:13px;text-align:center;padding:20px">Sin gastos este mes</p>'
+    :sorted.map(x=>`<div class="expense-item">
+      <div class="exp-icon" style="background:${CAT_COLORS[x.Categoria]||'#888'}22">${CAT_ICONS[x.Categoria]||'📌'}</div>
+      <div class="exp-info"><div class="exp-name">${x.Nombre}</div><div class="exp-cat">${x.Categoria}</div></div>
+      <div style="text-align:right"><div class="exp-amount">${fmt(x.Monto)}</div><div class="exp-date">${x.Fecha.slice(8,10)}/${x.Fecha.slice(5,7)}</div></div>
+    </div>`).join('');
+}
+
+function renderDeudas(){
+  const totalSaldo=deudas.reduce((s,d)=>s+d.saldo,0);
+  const totalPagado=deudas.reduce((s,d)=>s+(d.totalOriginal-d.saldo),0);
+  document.getElementById('deudas-metrics').innerHTML=`
+    <div class="metric"><div class="metric-label">Saldo total</div><div class="metric-value danger">${fmt(totalSaldo)}</div></div>
+    <div class="metric"><div class="metric-label">Total pagado</div><div class="metric-value success">${fmt(totalPagado)}</div></div>
+  `;
+  document.getElementById('deudas-list').innerHTML=deudas.map(d=>{
+    const pagado=d.totalOriginal-d.saldo;
+    const pct=Math.round(pagado/d.totalOriginal*100);
+    const terminado=d.saldo<=0;
+    return`<div class="deuda-card">
+      <div class="deuda-header">
+        <div class="deuda-nombre">${d.n}</div>
+        <span class="badge ${terminado?'badge-ok':'badge-pend'}">${terminado?'Pagado':d.tipo}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:#6d6d72;margin-bottom:4px">
+        <span>${pct}% pagado</span><span>${fmt(pagado)} de ${fmt(d.totalOriginal)}</span>
+      </div>
+      <div class="deuda-progress-bar"><div class="deuda-progress-fill" style="width:${pct}%;background:${terminado?'#1d7a4f':'#3266ad'}"></div></div>
+      <div class="deuda-nums">
+        <div class="deuda-num"><div class="deuda-num-label">Total original</div><div class="deuda-num-val">${fmt(d.totalOriginal)}</div></div>
+        <div class="deuda-num"><div class="deuda-num-label">Ya pagado</div><div class="deuda-num-val g">${fmt(pagado)}</div></div>
+        <div class="deuda-num"><div class="deuda-num-label">Saldo restante</div><div class="deuda-num-val r">${fmt(Math.max(d.saldo,0))}</div></div>
+      </div>
+      ${!terminado?`<div class="pago-row">
+        <input type="number" id="pago-${d.id}" placeholder="Monto a pagar" inputmode="numeric">
+        <button onclick="registrarPago(${d.id})">Pagar</button>
+      </div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function registrarPago(id){
+  const input=document.getElementById('pago-'+id);
+  const monto=parseFloat(input.value);
+  if(!monto||isNaN(monto)||monto<=0){alert('Ingresá un monto válido');return}
+  const d=deudas.find(x=>x.id===id);
+  if(!d)return;
+  d.saldo=Math.max(0,d.saldo-monto);
+  input.value='';
+  saveData();
+  renderDeudas();
+}
+
+function renderFondo(){
+  const total=fondo.reduce((s,f)=>s+f.monto,0);
+  document.getElementById('fondo-total').textContent=fmt(total);
+  const max=Math.max(...fondo.map(f=>Math.abs(f.monto)));
+  document.getElementById('fondo-list').innerHTML=fondo.map(f=>`
+    <div style="padding:10px 0;border-bottom:0.5px solid rgba(0,0,0,.08)">
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+        <span style="font-size:13px;color:#1c1c1e">${f.mes}</span>
+        <span style="font-size:13px;font-weight:600;color:${f.monto>=0?'#1d7a4f':'#c0392b'}">${fmt(f.monto)}</span>
+      </div>
+      <div class="fondo-bar"><div class="fondo-fill" style="width:${Math.round(Math.abs(f.monto)/max*100)}%;background:${f.monto>=0?'#3266ad':'#c0392b'}"></div></div>
+    </div>`).join('');
+}
+
+function openDeudaModal(){document.getElementById('modal-deuda').classList.add('open')}
+function openGastoModal(){
+  document.getElementById('inp-fecha').value=new Date().toISOString().slice(0,10);
+  document.getElementById('modal-gasto').classList.add('open');
+}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+
+function addDeuda(){
+  const nombre=document.getElementById('nd-nombre').value.trim();
+  const total=parseFloat(document.getElementById('nd-total').value);
+  const tipo=document.getElementById('nd-tipo').value;
+  if(!nombre||!total){alert('Completá todos los campos');return}
+  deudas.push({id:nextId++,n:nombre,tipo,totalOriginal:total,saldo:total});
+  document.getElementById('nd-nombre').value='';
+  document.getElementById('nd-total').value='';
+  closeModal('modal-deuda');
+  saveData();
+  renderDeudas();
+}
+
+function addGasto(){
+  const nombre=document.getElementById('inp-nombre').value.trim();
+  const monto=parseFloat(document.getElementById('inp-monto').value);
+  const fecha=document.getElementById('inp-fecha').value;
+  const cat=document.getElementById('inp-cat').value;
+  if(!nombre||!monto||!fecha){alert('Completá todos los campos');return}
+  const mes=fecha.slice(0,7);
+  if(!allMeses.includes(mes)){allMeses.push(mes);MESES_LABELS[mes]=mes}
+  gastos.push({Fecha:fecha,Nombre:nombre,Monto:monto,Categoria:cat,Mes:mes});
+  closeModal('modal-gasto');
+  document.getElementById('inp-nombre').value='';
+  document.getElementById('inp-monto').value='';
+  curMesIdx=allMeses.indexOf(mes);curMesIdx2=allMeses.indexOf(mes);
+  saveData();
+  renderResumen();renderGastos();
+}
+
+// Service Worker para PWA
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+
+renderResumen();renderGastos();renderDeudas();renderFondo();
+</script>
+</body>
+</html>

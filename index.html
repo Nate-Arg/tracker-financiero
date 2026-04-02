@@ -380,6 +380,8 @@ function registrarPago(id){
   d.saldo=Math.max(0,d.saldo-monto);
   input.value='';
   saveData();
+  syncSheet({tipo:'pago_deuda',nombre:d.n,monto});
+  mostrarSyncStatus('✓ Pago registrado en Sheets');
   renderDeudas();
 }
 
@@ -425,13 +427,42 @@ function addGasto(){
   if(!nombre||!monto||!fecha){alert('Completá todos los campos');return}
   const mes=fecha.slice(0,7);
   if(!allMeses.includes(mes)){allMeses.push(mes);MESES_LABELS[mes]=mes}
-  gastos.push({Fecha:fecha,Nombre:nombre,Monto:monto,Categoria:cat,Mes:mes});
+  const nuevoGasto={Fecha:fecha,Nombre:nombre,Monto:monto,Categoria:cat,Mes:mes};
+  gastos.push(nuevoGasto);
   closeModal('modal-gasto');
   document.getElementById('inp-nombre').value='';
   document.getElementById('inp-monto').value='';
   curMesIdx=allMeses.indexOf(mes);curMesIdx2=allMeses.indexOf(mes);
   saveData();
+  syncSheet({tipo:'gasto',id:Date.now(),fecha,nombre,monto,categoria:cat});
+  mostrarSyncStatus('✓ Gasto guardado en Sheets');
   renderResumen();renderGastos();
+}
+
+// ── Google Sheets Sync ──
+const SHEET_URL='https://script.google.com/macros/s/AKfycbzwOYIB53up2X5m8nz3y4fgD6qr2DfjvhXSYfM7oQTtHLr_8G4PLqFYjR5eJCsoEWX0CQ/exec';
+
+function syncSheet(payload){
+  fetch(SHEET_URL,{
+    method:'POST',
+    mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(payload)
+  }).catch(()=>{});
+}
+
+function mostrarSyncStatus(msg,ok=true){
+  let el=document.getElementById('sync-status');
+  if(!el){
+    el=document.createElement('div');
+    el.id='sync-status';
+    el.style.cssText='position:fixed;bottom:155px;left:50%;transform:translateX(-50%);background:'+(ok?'#1d7a4f':'#c0392b')+';color:#fff;font-size:12px;padding:6px 16px;border-radius:20px;z-index:99;opacity:1;transition:opacity 1.5s';
+    document.body.appendChild(el);
+  }
+  el.style.background=ok?'#1d7a4f':'#c0392b';
+  el.textContent=msg;
+  el.style.opacity='1';
+  setTimeout(()=>{el.style.opacity='0'},2500);
 }
 
 // Service Worker para PWA
